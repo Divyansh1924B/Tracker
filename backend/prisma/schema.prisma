@@ -1,0 +1,55 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  admin
+  member
+
+  @@map("user_role")
+}
+
+model User {
+  id               String     @id @default(uuid()) @db.Uuid
+  email            String     @unique
+  passwordHash     String     @map("password_hash")
+  role             UserRole   @default(member)
+  name             String     @db.VarChar(100)
+  phone            String?    @db.VarChar(20)
+  deviceName       String?    @map("device_name") @db.VarChar(100)
+  photoUrl         String?    @map("photo_url")
+  currentSessionId String?    @map("current_session_id") @db.Uuid
+  onlineStatus     Boolean    @default(false) @map("online_status")
+  lastSeen         DateTime?  @map("last_seen")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+  deletedAt        DateTime?  @map("deleted_at")
+  locations        Location[]
+
+  @@map("users")
+}
+
+model Location {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  latitude          Float
+  longitude         Float
+  accuracy          Float    @db.Real
+  speed             Float?   @db.Real
+  batteryPercentage Int?     @map("battery_percentage")
+  chargingStatus    Boolean? @map("charging_status")
+  gpsEnabled        Boolean  @default(true) @map("gps_enabled")
+  internetAvailable Boolean  @default(true) @map("internet_available")
+  timestamp         DateTime @db.Timestamptz(6)
+  createdAt         DateTime @default(now()) @map("created_at")
+  provider          String?  @db.VarChar(50)
+  deviceModel       String?  @map("device_model") @db.VarChar(100)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, timestamp(sort: Desc)], name: "idx_locations_user_time")
+  @@map("locations")
+}
