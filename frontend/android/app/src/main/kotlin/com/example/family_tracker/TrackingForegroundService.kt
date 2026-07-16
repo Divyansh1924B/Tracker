@@ -89,6 +89,8 @@ class TrackingForegroundService : Service() {
             Log.d(TAG, "Service restarted by OS. Parameters restored from SharedPreferences.")
         }
 
+        Log.d(TAG, "JWT Loaded: " + (if (jwtToken != null) "SUCCESS" else "NULL"))
+
         // Persistent notification setup
         val mainIntent = packageManager.getLaunchIntentForPackage(packageName)
         val pendingIntent = PendingIntent.getActivity(
@@ -202,6 +204,21 @@ class TrackingForegroundService : Service() {
 
     private fun triggerSync() {
         if (isSyncing) return
+
+        // Always re-read the latest JWT from SharedPreferences before syncing
+        // This ensures the native service uses the latest token even after Flutter process recreation
+        val prefs = getSharedPreferences("family_tracker_prefs", Context.MODE_PRIVATE)
+        val freshToken = prefs.getString("jwtToken", null)
+        val freshApiUrl = prefs.getString("apiBaseUrl", null)
+
+        if (freshToken != null) {
+            jwtToken = freshToken
+            Log.d(TAG, "JWT Loaded: SUCCESS (re-read from SharedPreferences)")
+        }
+        if (freshApiUrl != null) {
+            apiBaseUrl = freshApiUrl
+        }
+
         if (jwtToken == null || apiBaseUrl == null) {
             Log.d(TAG, "Sync aborted: jwtToken or apiBaseUrl is null.")
             return
@@ -298,6 +315,7 @@ class TrackingForegroundService : Service() {
                     conn.requestMethod = "POST"
                     conn.setRequestProperty("Content-Type", "application/json")
                     conn.setRequestProperty("Authorization", "Bearer $jwtToken")
+                    Log.d(TAG, "Authorization Header Added")
                     conn.doOutput = true
                     conn.connectTimeout = 5000
                     conn.readTimeout = 5000

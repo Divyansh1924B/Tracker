@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/dio_client.dart';
 import '../data/auth_providers.dart';
 import '../domain/auth_repository.dart';
@@ -44,6 +45,10 @@ class AuthController extends StateNotifier<AuthState> {
     await _storage.write(key: 'user_phone', value: user.phone ?? '');
     await _storage.write(key: 'device_name', value: user.deviceName ?? '');
     await _storage.write(key: 'photo_url', value: user.photoUrl ?? '');
+    // Sync JWT to SharedPreferences so native Kotlin service always has the latest token
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('jwtToken', token);
+    await prefs.setString('apiBaseUrl', 'https://tracker-backend-production-2e58.up.railway.app/api');
   }
 
   Future<void> _clearSession() async {
@@ -55,6 +60,10 @@ class AuthController extends StateNotifier<AuthState> {
     await _storage.delete(key: 'user_phone');
     await _storage.delete(key: 'device_name');
     await _storage.delete(key: 'photo_url');
+    // Clear JWT from SharedPreferences so native service stops uploading
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('jwtToken');
+    await prefs.remove('tracking_enabled');
   }
 
   Future<void> checkAuthStatus() async {
